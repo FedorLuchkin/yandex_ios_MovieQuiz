@@ -17,6 +17,8 @@ final class MovieQuizViewController: UIViewController {
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var textLabel: UILabel!
+    @IBOutlet private weak var noButton: UIButton!
+    @IBOutlet private weak var yesButton: UIButton!
     
     // MARK: - Controller class methods
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
@@ -33,7 +35,7 @@ final class MovieQuizViewController: UIViewController {
         textLabel.text = model.question
     }
     
-    private func showAnswerResult(isCorrect: Bool, sender: UIButton) {
+    private func showAnswerResult(isCorrect: Bool) {
         imageView.layer.borderWidth = 8
         
         if isCorrect {
@@ -46,7 +48,8 @@ final class MovieQuizViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             self.showNextQuestionOrRoundResults()
-            sender.isEnabled = true
+            self.noButton.isEnabled = true
+            self.yesButton.isEnabled = true
         }
     }
     
@@ -56,21 +59,23 @@ final class MovieQuizViewController: UIViewController {
             guard let statisticService = statisticService else { return }
             statisticService.store(correct: correctAnswers, total: questionAmount)
             let date = statisticService.bestGame.date.dateTimeString
+            let totalAccuracy = (String(format: "%.2f", statisticService.totalAccuracy) + "%")
             let message = """
                 Ваш результат: \(correctAnswers)/\(questionAmount)\n\
                 Количесство сыгранных квизов: \(statisticService.gamesCount)
                 Рекорд: \(statisticService.bestGame.correct)/\(statisticService.bestGame.total) (\(date))
-                Средняя точность: \(statisticService.totalAccuracy)
+                Средняя точность: \(totalAccuracy)
             """
-            let alertModel = AlertModel(title: "Этот раунд окончен!",
-                                        message: message,
-                                        buttonText: "Сыграть ещё раз",
-                                        complection: { [weak self] in
-                                            guard let self = self else { return }
-                                            self.currentQuestionIndex = 0
-                                            self.correctAnswers = 0
-                                            self.questionFactory?.requestNextQuestion()
-                                        })
+            let alertModel = AlertModel(
+                title: "Этот раунд окончен!",
+                message: message,
+                buttonText: "Сыграть ещё раз",
+                completion: { [weak self] in
+                    guard let self = self else { return }
+                    self.currentQuestionIndex = 0
+                    self.correctAnswers = 0
+                    self.questionFactory?.requestNextQuestion()
+                })
             alertPresenter?.showAlert(model: alertModel)
         } else {
             currentQuestionIndex += 1
@@ -78,21 +83,6 @@ final class MovieQuizViewController: UIViewController {
         }
     }
     
-    @IBAction func noButtonClicked(_ sender: UIButton) {
-        guard let currentQuestion = currentQuestion else { return }
-        sender.isEnabled = false
-        let correctAnswer: Bool = currentQuestion.correctAnswer
-        showAnswerResult(isCorrect: correctAnswer == false, sender: sender)
-    }
-    
-    @IBAction func yesButtonClicked(_ sender: UIButton) {
-        guard let currentQuestion = currentQuestion else { return }
-        sender.isEnabled = false
-        let correctAnswer: Bool = currentQuestion.correctAnswer
-        showAnswerResult(isCorrect: correctAnswer == true, sender: sender)
-    
-    }
-
     override func viewDidLoad() {
         super.viewDidLoad()
         imageView.layer.masksToBounds = true
@@ -106,6 +96,22 @@ final class MovieQuizViewController: UIViewController {
     
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
+    }
+
+    @IBAction private func noButtonClicked() {
+        guard let currentQuestion = currentQuestion else { return }
+        noButton.isEnabled = false
+        yesButton.isEnabled = false
+        let correctAnswer: Bool = currentQuestion.correctAnswer
+        showAnswerResult(isCorrect: correctAnswer == false)
+    }
+
+    @IBAction private func yesButtonClicked() {
+        guard let currentQuestion = currentQuestion else { return }
+        noButton.isEnabled = false
+        yesButton.isEnabled = false
+        let correctAnswer: Bool = currentQuestion.correctAnswer
+        showAnswerResult(isCorrect: correctAnswer == true)
     }
 }
 
