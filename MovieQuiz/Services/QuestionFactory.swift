@@ -66,8 +66,16 @@ class QuestionFactory: QuestionFactoryProtocol {
             let rating = Float(movie.rating) ?? 0
             
             let mark = Array(4 ... 9).randomElement() ?? 7
-            let text = "Рейтинг этого фильма больше чем \(mark)?"
-            let correctAnswer = rating > Float(mark)
+            var text = ""
+            var correctAnswer = false
+            if Int(10 * rating) % 2 == 0 {
+                text = "Рейтинг этого фильма больше чем \(mark)?"
+                correctAnswer = rating > Float(mark)
+            } else {
+                text = "Рейтинг этого фильма меньше чем \(mark)?"
+                correctAnswer = rating < Float(mark)
+            }
+            
             
             let question = QuizQuestion(image: imageData,
                                         text: text,
