@@ -7,66 +7,40 @@
 
 import Foundation
 
+public enum CustomError: Error {
+    case emptyItems(errorMessage: String)
+    case imageLoadError
+}
+
+extension CustomError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .emptyItems(let errorMessage):
+            return NSLocalizedString(errorMessage, comment: "Client error")
+        case .imageLoadError:
+            return NSLocalizedString("Image load error", comment: "Image load error")
+        }
+    }
+}
+
 class QuestionFactory: QuestionFactoryProtocol {
-//    private let questions: [QuizQuestion] = [
-//            QuizQuestion(
-//                image: "The Godfather",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "The Dark Knight",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "Kill Bill",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "The Avengers",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "Deadpool",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "The Green Knight",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: true),
-//            QuizQuestion(
-//                image: "Old",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: false),
-//            QuizQuestion(
-//                image: "The Ice Age Adventures of Buck Wild",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: false),
-//            QuizQuestion(
-//                image: "Tesla",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: false),
-//            QuizQuestion(
-//                image: "Vivarium",
-//                text: "Рейтинг этого фильма больше чем 6?",
-//                correctAnswer: false)
-//        ]
     
     private var movies: [MostPopularMovie] = []
-    private var questionNumbers: [Int] = Array(0 ... 249).shuffled()
+    private var questionNumbers: [Int] = []
     weak var delegate: QuestionFactoryDelegate?
     private let moviesLoader: MoviesLoadingProtocol
     
     init(moviesLoader: MoviesLoadingProtocol, delegate: QuestionFactoryDelegate) {
-            self.moviesLoader = moviesLoader
-            self.delegate = delegate
-        }
+        self.moviesLoader = moviesLoader
+        self.delegate = delegate
+    }
     
     func requestNextQuestion() {
         DispatchQueue.global().async { [weak self] in
             guard let self = self else { return }
             // with replay protection
             if self.questionNumbers.count == 0 {
-                self.questionNumbers = Array(0 ... 249).shuffled()
+                self.questionNumbers = Array(0 ... self.movies.count - 1).shuffled()
             }
             
             guard let index = self.questionNumbers.first else {
@@ -79,11 +53,14 @@ class QuestionFactory: QuestionFactoryProtocol {
             guard let movie = self.movies[safe: index] else { return }
             
             var imageData = Data()
-           
+            
             do {
                 imageData = try Data(contentsOf: movie.resizedImageURL)
             } catch {
                 print("Failed to load image")
+                let error: Error = CustomError.imageLoadError
+                self.delegate?.didFailToLoadImage(with: error)
+                return
             }
             
             let rating = Float(movie.rating) ?? 0
@@ -93,8 +70,8 @@ class QuestionFactory: QuestionFactoryProtocol {
             let correctAnswer = rating > Float(mark)
             
             let question = QuizQuestion(image: imageData,
-                                         text: text,
-                                         correctAnswer: correctAnswer)
+                                        text: text,
+                                        correctAnswer: correctAnswer)
             
             DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
@@ -109,8 +86,13 @@ class QuestionFactory: QuestionFactoryProtocol {
                 guard let self = self else { return }
                 switch result {
                 case .success(let mostPopularMovies):
-                    self.movies = mostPopularMovies.items
-                    self.delegate?.didLoadDataFromServer()
+                    if mostPopularMovies.items.isEmpty {
+                        let error: Error = CustomError.emptyItems(errorMessage: mostPopularMovies.errorMessage)
+                        self.delegate?.didFailToLoadData(with: error)
+                    } else {
+                        self.movies = mostPopularMovies.items
+                        self.delegate?.didLoadDataFromServer()
+                    }
                 case .failure(let error):
                     self.delegate?.didFailToLoadData(with: error)
                 }
