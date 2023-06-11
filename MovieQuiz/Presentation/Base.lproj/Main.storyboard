@@ -56,7 +56,7 @@
                                         <rect key="frame" x="0.0" y="624.5" width="374" height="99.5"/>
                                         <string key="text">Рейтинг этого фильма 
 больше, чем 5?</string>
-                                        <fontDescription key="fontDescription" name="YSDisplay-Bold" family="YS Display" pointSize="20"/>
+                                        <fontDescription key="fontDescription" name="YSDisplay-Bold" family="YS Display" pointSize="23"/>
                                         <color key="textColor" name="YP White"/>
                                         <nil key="highlightedColor"/>
                                     </label>
@@ -94,7 +94,7 @@
                                                 <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                                                 <state key="normal">
                                                     <attributedString key="attributedTitle">
-                                                        <fragment content="ДА">
+                                                        <fragment content="Да">
                                                             <attributes>
                                                                 <font key="NSFont" size="20" name="YSDisplay-Medium"/>
                                                                 <paragraphStyle key="NSParagraphStyle" alignment="natural" lineBreakMode="wordWrapping" baseWritingDirection="natural" tighteningFactorForTruncation="0.0"/>
@@ -118,17 +118,23 @@
                                     </stackView>
                                 </subviews>
                             </stackView>
+                            <activityIndicatorView opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="KTV-YW-ZOK">
+                                <rect key="frame" x="197" y="438" width="20" height="20"/>
+                            </activityIndicatorView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" name="YP Black"/>
                         <constraints>
                             <constraint firstItem="QpE-Ut-h4C" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="10" id="2w9-Kr-DIb"/>
+                            <constraint firstItem="KTV-YW-ZOK" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="5T1-To-3nB"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="bottom" secondItem="QpE-Ut-h4C" secondAttribute="bottom" id="JBk-fA-Uo6"/>
                             <constraint firstItem="QpE-Ut-h4C" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="20" id="SOQ-wt-gCt"/>
+                            <constraint firstItem="KTV-YW-ZOK" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="VEH-ce-jNm"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="QpE-Ut-h4C" secondAttribute="trailing" constant="20" id="ee6-Ep-LSs"/>
                         </constraints>
                     </view>
                     <connections>
+                        <outlet property="activityIndicator" destination="KTV-YW-ZOK" id="1VG-h2-Uhb"/>
                         <outlet property="counterLabel" destination="xbd-DO-HSP" id="KXF-Rz-F15"/>
                         <outlet property="imageView" destination="mhg-gB-0Cy" id="PsR-D6-8mx"/>
                         <outlet property="noButton" destination="5yH-TN-jyL" id="FGx-2S-Wfx"/>

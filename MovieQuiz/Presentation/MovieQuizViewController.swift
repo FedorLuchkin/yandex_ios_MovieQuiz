@@ -13,17 +13,59 @@ final class MovieQuizViewController: UIViewController {
     private var currentQuestion: QuizQuestion?
     private var alertPresenter: AlertPresenterProtocol?
     private var statisticService: StatisticServiceProtocol?
-
+    private var moviesLoader: MoviesLoadingProtocol?
+    
     @IBOutlet private weak var counterLabel: UILabel!
     @IBOutlet private weak var imageView: UIImageView!
     @IBOutlet private weak var textLabel: UILabel!
     @IBOutlet private weak var noButton: UIButton!
     @IBOutlet private weak var yesButton: UIButton!
+    @IBOutlet private weak var activityIndicator: UIActivityIndicatorView!
     
     // MARK: - Controller class methods
+    private func showLoadingIndicator() {
+        activityIndicator.isHidden = false
+        activityIndicator.startAnimating()
+    }
+    
+    private func changeButtonsState(state: Bool) {
+        noButton.isEnabled = state
+        yesButton.isEnabled = state
+    }
+    
+    private func resetGame() {
+        currentQuestionIndex = 0
+        correctAnswers = 0
+        questionFactory?.loadData()
+        changeButtonsState(state: true)
+    }
+    
+    private func showNetworkError(message: String) {
+        activityIndicator.stopAnimating()
+        let alertModel = AlertModel(
+            title: "Ошибка",
+            message: message,
+            buttonText: "Попробовать ещё раз",
+            completion: { [weak self] in
+                self?.resetGame()
+            })
+        alertPresenter?.showAlert(model: alertModel)
+    }
+    
+    private func showImageLoadError(message: String) {
+        let alertModel = AlertModel(
+            title: "Ошибка",
+            message: message,
+            buttonText: "Попробовать ещё раз",
+            completion: { [weak self] in
+                self?.showNextQuestionOrRoundResults()
+            })
+        alertPresenter?.showAlert(model: alertModel)
+    }
+    
     private func convert(model: QuizQuestion) -> QuizStepViewModel {
         return QuizStepViewModel(
-            image: UIImage(named: model.image) ?? UIImage(),
+            image: UIImage(data: model.image) ?? UIImage(),
             question: model.text,
             questionNumber: "\(currentQuestionIndex + 1)/\(questionAmount)"
         )
@@ -48,8 +90,6 @@ final class MovieQuizViewController: UIViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
             guard let self = self else { return }
             self.showNextQuestionOrRoundResults()
-            self.noButton.isEnabled = true
-            self.yesButton.isEnabled = true
         }
     }
     
@@ -74,11 +114,14 @@ final class MovieQuizViewController: UIViewController {
                     guard let self = self else { return }
                     self.currentQuestionIndex = 0
                     self.correctAnswers = 0
+                    self.activityIndicator.startAnimating()
                     self.questionFactory?.requestNextQuestion()
                 })
             alertPresenter?.showAlert(model: alertModel)
+            activityIndicator.stopAnimating()
         } else {
             currentQuestionIndex += 1
+            activityIndicator.startAnimating()
             questionFactory?.requestNextQuestion()
         }
     }
@@ -87,9 +130,10 @@ final class MovieQuizViewController: UIViewController {
         super.viewDidLoad()
         imageView.layer.masksToBounds = true
         imageView.layer.cornerRadius = 20
-        
-        questionFactory = QuestionFactory(delegate: self)
-        questionFactory?.requestNextQuestion()
+        questionFactory = QuestionFactory(moviesLoader: MoviesLoader(), delegate: self)
+        activityIndicator.hidesWhenStopped = true
+        showLoadingIndicator()
+        questionFactory?.loadData()
         alertPresenter = AlertPresenter(delegate: self)
         statisticService = StatisticServiceImplementation()
     }
@@ -97,19 +141,17 @@ final class MovieQuizViewController: UIViewController {
     override var preferredStatusBarStyle: UIStatusBarStyle {
         return .lightContent
     }
-
+    
     @IBAction private func noButtonClicked() {
         guard let currentQuestion = currentQuestion else { return }
-        noButton.isEnabled = false
-        yesButton.isEnabled = false
+        changeButtonsState(state: false)
         let correctAnswer: Bool = currentQuestion.correctAnswer
         showAnswerResult(isCorrect: correctAnswer == false)
     }
-
+    
     @IBAction private func yesButtonClicked() {
         guard let currentQuestion = currentQuestion else { return }
-        noButton.isEnabled = false
-        yesButton.isEnabled = false
+        changeButtonsState(state: false)
         let correctAnswer: Bool = currentQuestion.correctAnswer
         showAnswerResult(isCorrect: correctAnswer == true)
     }
@@ -117,12 +159,32 @@ final class MovieQuizViewController: UIViewController {
 
 // MARK: - QuestionFactoryDelegate
 extension MovieQuizViewController: QuestionFactoryDelegate {
+    
     func didReceiveNextQuestion(question: QuizQuestion?) {
         guard let question = question else { return }
         currentQuestion = question
         let viewModel = convert(model: question)
         DispatchQueue.main.async { [weak self] in
             self?.showNextQuestion(quiz: viewModel)
+            self?.activityIndicator.stopAnimating()
+            self?.changeButtonsState(state: true)
+        }
+    }
+    
+    func didFailToLoadData(with error: Error) {
+        showNetworkError(message: error.localizedDescription)
+    }
+    
+    func didLoadDataFromServer() {
+        questionFactory?.requestNextQuestion()
+    }
+    
+    func didFailToLoadImage(with error: Error) {
+        DispatchQueue.main.async { [weak self] in
+            self?.changeButtonsState(state: false)
+            self?.activityIndicator.stopAnimating()
+            self?.currentQuestionIndex -= 1
+            self?.showImageLoadError(message: error.localizedDescription)
         }
     }
 }
