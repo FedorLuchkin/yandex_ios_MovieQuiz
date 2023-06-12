@@ -22,7 +22,7 @@ class AlertPresenter: AlertPresenterProtocol {
         let alert = UIAlertController(title: model.title,
                                       message: model.message,
                                       preferredStyle: .alert)
-        // alert.accessibilityLabel = "Game results"
+        
         let action = UIAlertAction(title: model.buttonText, style: .default) { _ in
             model.completion()
         }
