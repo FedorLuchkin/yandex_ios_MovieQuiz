@@ -12,9 +12,9 @@ protocol AlertPresenterProtocol {
 }
 
 class AlertPresenter: AlertPresenterProtocol {
-    weak private var delegate: UIViewController?
+    weak private var delegate: MovieQuizViewController?
     
-    init(delegate: UIViewController) {
+    init(delegate: MovieQuizViewController) {
         self.delegate = delegate
     }
     
